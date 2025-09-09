@@ -17,6 +17,40 @@ interface Ride {
 type RideWithAI = Ride & { ai?: { embedding?: number[] } };
 const today = new Date().toISOString().split("T")[0];
 
+// Build dummy rides for the current day (used only when there are no real rides)
+const buildDummyRides = (dateStr: string): Ride[] => [
+  {
+    id: "dummy-1",
+    name: "Sample Rider A",
+    phone: 9000000001,
+    pickup: "Campus Main Gate",
+    drop: "Railway Station",
+    datetime: `${dateStr}T08:30:00`,
+    notes: "Demo listing for preview",
+    seats: 3,
+  },
+  {
+    id: "dummy-2",
+    name: "Sample Rider B",
+    phone: 9000000002,
+    pickup: "Hostel Circle",
+    drop: "City Mall",
+    datetime: `${dateStr}T13:15:00`,
+    notes: "Sample afternoon ride",
+    seats: 2,
+  },
+  {
+    id: "dummy-3",
+    name: "Sample Rider C",
+    phone: 9000000003,
+    pickup: "Campus Library",
+    drop: "Airport",
+    datetime: `${dateStr}T18:45:00`,
+    notes: "Evening airport drop (demo)",
+    seats: 1,
+  },
+];
+
 const RideList: React.FC = () => {
   const [allRides, setAllRides] = useState<Ride[]>([]);
   const [rides, setRides] = useState<Ride[]>([]);
@@ -45,10 +79,10 @@ const RideList: React.FC = () => {
         setAllRides(rideList);
 
         if (showAllRides) {
-          setRides(rideList);
+          setRides(rideList.length ? rideList : buildDummyRides(today));
         } else {
           const todayRides = rideList.filter((ride) => ride.datetime.includes(today));
-          setRides(todayRides);
+          setRides(todayRides.length ? todayRides : buildDummyRides(today));
         }
       } catch (error) {
         console.error("Error fetching rides:", error);
@@ -79,7 +113,11 @@ const RideList: React.FC = () => {
         const mDate = dateStr ? ride.datetime.includes(dateStr) : true;
         return mPickup && mDrop && mKw && mDate;
       });
-      setRides(filtered);
+      if (!filtered.length && dateStr === today) {
+        setRides(buildDummyRides(today));
+      } else {
+        setRides(filtered);
+      }
       setLoading(false);
       return;
     }
@@ -115,7 +153,12 @@ const RideList: React.FC = () => {
         .sort((a, b) => b.score - a.score)
         .map((x, i) => ({ ...x, rank: i + 1 }))
         .slice(0, 36);
-      setRides(ranked.map((x) => x.r));
+      const rankedRides = ranked.map((x) => x.r);
+      if (!rankedRides.length && dateStr === today) {
+        setRides(buildDummyRides(today));
+      } else {
+        setRides(rankedRides);
+      }
     } catch (err) {
       console.error("Smart search failed", err);
     } finally {
@@ -224,7 +267,10 @@ const RideList: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-6">
             {rides.map((ride, idx) => (
-              <div key={ride.id} className="border border-gray-200 rounded-xl p-5 shadow-sm bg-white">
+              <div key={ride.id} className="border border-gray-200 rounded-xl p-5 shadow-sm bg-white relative">
+                {ride.id.startsWith("dummy-") && (
+                  <span className="absolute top-2 right-2 text-[10px] uppercase tracking-wide bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full border border-gray-200">Sample</span>
+                )}
                 <div className="flex items-center gap-2 mb-3">
                   <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 12.414a4 4 0 10-5.657 5.657l4.243 4.243a8 8 0 1111.314-11.314l-4.243 4.243" />
