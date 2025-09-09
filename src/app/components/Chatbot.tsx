@@ -28,7 +28,7 @@ type Msg = { role: Role; content: string };
 
 const Chatbot: React.FC = () => {
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<Tab>("helper");
+  const [tab, setTab] = useState<Tab>("ai");
 
   // Helper tab state (teammate's flow)
   const [phase, setPhase] = useState<Phase>("awaiting_start");
@@ -271,7 +271,7 @@ const Chatbot: React.FC = () => {
       )}
 
       {open && (
-        <div className="w-[420px] max-w-[92vw] bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden">
+        <div className="w-[420px] max-w-[92vw] max-h-[80vh] bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between p-3 bg-amber-50 border-b">
             <div>
@@ -282,22 +282,22 @@ const Chatbot: React.FC = () => {
               {/* Tabs */}
               <div className="flex bg-white border rounded-lg overflow-hidden">
                 <button
-                  className={`px-3 py-1 text-xs flex items-center gap-1 ${tab === "helper" ? "bg-amber-100 text-amber-700" : "text-gray-600"}`}
-                  onClick={() => setTab("helper")}
-                  aria-label="Helper"
-                  title="Helper"
-                >
-                  <Search className="w-3.5 h-3.5" />
-                  Helper
-                </button>
-                <button
-                  className={`px-3 py-1 text-xs flex items-center gap-1 ${tab === "ai" ? "bg-amber-100 text-amber-700" : "text-gray-600"}`}
+                  className={`px-3 py-1 text-xs flex items-center gap-1 flex-shrink-0 ${tab === "ai" ? "bg-amber-100 text-amber-700" : "text-gray-600"}`}
                   onClick={() => setTab("ai")}
                   aria-label="Ask AI"
                   title="Ask AI"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   Ask AI
+                </button>
+                <button
+                  className={`px-3 py-1 text-xs flex items-center gap-1 flex-shrink-0 ${tab === "helper" ? "bg-amber-100 text-amber-700" : "text-gray-600"}`}
+                  onClick={() => setTab("helper")}
+                  aria-label="Helper"
+                  title="Helper"
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  Helper
                 </button>
               </div>
               <button onClick={() => { setOpen(false); }} className="text-gray-500 hover:text-gray-700">
@@ -309,7 +309,7 @@ const Chatbot: React.FC = () => {
           </div>
 
           {/* Body */}
-          <div className="p-4 space-y-4">
+          <div className="p-4 flex-1 overflow-y-auto space-y-4">
             {tab === "helper" && (
               <>
                 {/* Messages area */}

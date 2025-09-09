@@ -132,9 +132,10 @@ const RideList: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white pt-20 pb-12">
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8 w-full border border-gray-200">
+    <div className="bg-white pt-20 pb-4" style={{ minHeight: 'calc(100vh - 200px)' }}>
+      <div className="max-w-6xl mx-auto px-6 h-full flex flex-col">
+        {/* Fixed Search Panel */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6 w-full border border-gray-200 flex-shrink-0">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
             {/* Pickup */}
             <div className="md:col-span-4">
@@ -211,80 +212,81 @@ const RideList: React.FC = () => {
               </button>
             </div>
           </div>
-
-          {/* No datalist suggestions */}
         </div>
 
-        {!loading && rides.length === 0 && (
-          <div className="text-center text-gray-600 mb-8">
-            No rides found. Try adjusting pickup, drop, or date.
-          </div>
-        )}
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 350px)' }}>
+          {!loading && rides.length === 0 && (
+            <div className="text-center text-gray-600 py-8">
+              No rides found. Try adjusting pickup, drop, or date.
+            </div>
+          )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {rides.map((ride, idx) => (
-            <div key={ride.id} className="border border-gray-200 rounded-xl p-5 shadow-sm bg-white">
-              <div className="flex items-center gap-2 mb-3">
-                <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 12.414a4 4 0 10-5.657 5.657l4.243 4.243a8 8 0 1111.314-11.314l-4.243 4.243" />
-                </svg>
-                <span className="font-semibold">{ride.pickup}</span>
-                <svg className="w-4 h-4 mx-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-                <span className="font-semibold">{ride.drop}</span>
-                {smart && idx < 3 && (
-                  <span className="ml-auto text-[10px] uppercase tracking-wide bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
-                    Top match
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2 mb-2">
-                <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span className="text-gray-600 text-sm">{ride.datetime.replace("T", ", ")}</span>
-              </div>
-
-              {/* Match badges */}
-              {smart && (
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {pickupQuery && ride.pickup.toLowerCase().includes(pickupQuery.toLowerCase()) && (
-                    <span className="text-[11px] bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full">Pickup match</span>
-                  )}
-                  {dropQuery && ride.drop.toLowerCase().includes(dropQuery.toLowerCase()) && (
-                    <span className="text-[11px] bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full">Drop match</span>
-                  )}
-                  {selectedDate && ride.datetime.includes(selectedDate) && (
-                    <span className="text-[11px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">Same day</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-6">
+            {rides.map((ride, idx) => (
+              <div key={ride.id} className="border border-gray-200 rounded-xl p-5 shadow-sm bg-white">
+                <div className="flex items-center gap-2 mb-3">
+                  <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 12.414a4 4 0 10-5.657 5.657l4.243 4.243a8 8 0 1111.314-11.314l-4.243 4.243" />
+                  </svg>
+                  <span className="font-semibold">{ride.pickup}</span>
+                  <svg className="w-4 h-4 mx-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  <span className="font-semibold">{ride.drop}</span>
+                  {smart && idx < 3 && (
+                    <span className="ml-auto text-[10px] uppercase tracking-wide bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
+                      Top match
+                    </span>
                   )}
                 </div>
-              )}
 
-              <div className="flex items-center gap-2 mb-4">
-                <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                <span className="text-gray-700 text-sm">Seats available: {ride.seats}</span>
-              </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-gray-600 text-sm">{ride.datetime.replace("T", ", ")}</span>
+                </div>
 
-              <div className="flex justify-between gap-4">
-                <button
-                  onClick={() => handleDetails(ride)}
-                  className="flex-1 border border-orange-400 text-orange-400 hover:bg-orange-50 py-2 rounded-lg text-sm"
-                >
-                  Details
-                </button>
-                <button
-                  onClick={() => console.log("Contact:", ride.phone)}
-                  className="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-lg text-sm flex items-center justify-center"
-                >
-                  Contact
-                </button>
+                {/* Match badges */}
+                {smart && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {pickupQuery && ride.pickup.toLowerCase().includes(pickupQuery.toLowerCase()) && (
+                      <span className="text-[11px] bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full">Pickup match</span>
+                    )}
+                    {dropQuery && ride.drop.toLowerCase().includes(dropQuery.toLowerCase()) && (
+                      <span className="text-[11px] bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full">Drop match</span>
+                    )}
+                    {selectedDate && ride.datetime.includes(selectedDate) && (
+                      <span className="text-[11px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">Same day</span>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 mb-4">
+                  <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span className="text-gray-700 text-sm">Seats available: {ride.seats}</span>
+                </div>
+
+                <div className="flex justify-between gap-4">
+                  <button
+                    onClick={() => handleDetails(ride)}
+                    className="flex-1 border border-orange-400 text-orange-400 hover:bg-orange-50 py-2 rounded-lg text-sm"
+                  >
+                    Details
+                  </button>
+                  <button
+                    onClick={() => console.log("Contact:", ride.phone)}
+                    className="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-lg text-sm flex items-center justify-center"
+                  >
+                    Contact
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
