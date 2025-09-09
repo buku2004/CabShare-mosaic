@@ -288,17 +288,34 @@ const Chatbot: React.FC = () => {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="group relative rounded-full bg-gradient-to-br from-white via-cyan-50 to-white hover:via-cyan-100 text-cyan-700 shadow-xl w-30 h-30 flex items-center justify-center border border-cyan-100/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 transition-all"
           aria-label="Open CabShare Assistant"
           title="Open CabShare Assistant"
+          className="
+            group relative rounded-full
+            w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24
+            bg-gradient-to-br from-white via-cyan-50 to-white hover:via-cyan-100
+            text-cyan-700 shadow-xl flex items-center justify-center
+            border border-cyan-100/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200
+            transition-all
+          "
         >
-          <span className="absolute inset-0 rounded-full animate-ping bg-cyan-200/15 group-hover:animate-none" aria-hidden="true" />
-          <div className="relative w-40 h-40 rounded-full overflow-hidden bg-white/90 backdrop-blur-sm flex items-center justify-center border border-cyan-100">
+          <span
+            className="absolute inset-0 rounded-full bg-cyan-200/15 group-hover:bg-cyan-200/25 transition-opacity"
+            aria-hidden="true"
+          />
+          <div
+            className="
+              relative rounded-full overflow-hidden
+              w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20
+              bg-white/90 backdrop-blur-sm flex items-center justify-center
+              border border-cyan-100 shadow-sm
+            "
+          >
             <Image
               src="/robot-avatar.jpeg"
               alt="CabShare bot"
-              width={100}
-              height={100}
+              fill
+              sizes="(max-width:640px) 48px, (max-width:768px) 64px, 80px"
               className="object-contain"
               priority
             />

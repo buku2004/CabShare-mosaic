@@ -50,16 +50,7 @@ function maybeExpandCampusAlias(name: string): string {
 function extractLocations(text: string): { origin: string; destination: string } | null {
   const t = text.trim();
 
-  const tryMatch = (re: RegExp) => {
-    const m = t.match(re);
-    if (!m) return null;
-    const a = sanitizePlace(m[1]);
-    const b = sanitizePlace(m[2]);
-    if (a.length >= 3 && b.length >= 3 && a.toLowerCase() !== b.toLowerCase()) {
-      return { origin: maybeExpandCampusAlias(a), destination: maybeExpandCampusAlias(b) };
-    }
-    return null;
-  };
+  // Removed unused tryMatch function
 
   const patterns: RegExp[] = [
     /\bfrom\s+(.+?)\s+(?:to|→|and)\s+(.+?)(?=[.?!,;]|$)/i,
