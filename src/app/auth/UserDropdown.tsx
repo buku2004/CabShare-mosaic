@@ -50,7 +50,7 @@ export default function UserDropdown({ name }: UserMenuProps) {
         className="flex items-center gap-2 p-2 rounded-full transition"
       >
         <img
-          src="/hutao.jpg"
+          src="/avatar.jpg"
           alt="User avatar"
           className="w-8 h-8 rounded-full border-2 hover:border border-orange-600"
         />
