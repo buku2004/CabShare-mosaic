@@ -1,8 +1,9 @@
 "use client";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { db } from "../constants/firebase";
 import { addDoc, collection, getDocs, serverTimestamp } from "firebase/firestore";
-import { Bot, User, MessageSquare, Send, Search, Sparkles } from "lucide-react";
+import { User, Send, Search, Sparkles, RotateCcw } from "lucide-react";
 
 // Combined Chatbot: two tabs
 // - Helper: teammate's ride menu/find/post flow (no external AI)
@@ -256,24 +257,59 @@ const Chatbot: React.FC = () => {
     }
   }
 
+  const startNewAIChat = () => {
+    setAiMsgs([]);
+    setAiInput("");
+    // slight delay to allow render then focus
+    requestAnimationFrame(() => {
+      const input = document.getElementById("ai-chat-input") as HTMLInputElement | null;
+      input?.focus();
+    });
+  };
+
+  const startNewHelperChat = () => {
+    setPhase("awaiting_start");
+    setMessages([{ from: "bot", text: "Type 'start' to begin the assistant." }]);
+    setFPickup("");
+    setFDrop("");
+    setResults([]);
+    setStaged([]);
+    setMessage(null);
+    setError(null);
+    requestAnimationFrame(() => {
+      const input = document.getElementById("helper-chat-input") as HTMLInputElement | null;
+      input?.focus();
+    });
+  };
+
   return (
     <div className="fixed bottom-6 right-6 z-50">
       {/* Toggle button */}
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="rounded-full bg-amber-600 hover:bg-amber-700 text-white shadow-lg w-14 h-14 flex items-center justify-center"
+          className="group relative rounded-full bg-gradient-to-br from-white via-cyan-50 to-white hover:via-cyan-100 text-cyan-700 shadow-xl w-30 h-30 flex items-center justify-center border border-cyan-100/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 transition-all"
           aria-label="Open CabShare Assistant"
           title="Open CabShare Assistant"
         >
-          <MessageSquare className="w-7 h-7" />
+          <span className="absolute inset-0 rounded-full animate-ping bg-cyan-200/15 group-hover:animate-none" aria-hidden="true" />
+          <div className="relative w-40 h-40 rounded-full overflow-hidden bg-white/90 backdrop-blur-sm flex items-center justify-center border border-cyan-100">
+            <Image
+              src="/robot-avatar.jpeg"
+              alt="CabShare bot"
+              width={100}
+              height={100}
+              className="object-contain"
+              priority
+            />
+          </div>
         </button>
       )}
 
       {open && (
-        <div className="w-[420px] max-w-[92vw] max-h-[80vh] bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden flex flex-col">
+        <div className="w-[420px] max-w-[92vw] h-[75vh] max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between p-3 bg-amber-50 border-b">
+          <div className="flex items-center justify-between p-3 bg-amber-50">
             <div>
               <div className="text-sm text-amber-700 font-medium">{headerTitle}</div>
               <div className="text-xs text-gray-500">{tab === "helper" ? "Type 'start' to begin • type 'menu' anytime" : "Ask anything about CabShare"}</div>
@@ -311,126 +347,136 @@ const Chatbot: React.FC = () => {
           {/* Body */}
           <div className="p-4 flex-1 overflow-y-auto space-y-4">
             {tab === "helper" && (
-              <>
-                {/* Messages area */}
-                <div ref={scrollRef} className="max-h-40 overflow-auto space-y-2 pr-1">
-                  {messages.map((m, i) => (
-                    <div key={i} className={`flex items-end gap-2 ${m.from === "bot" ? "justify-start" : "justify-end"}`}>
-                      {m.from === "bot" && (
-                        <div className="shrink-0 w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center">
-                          <Bot className="w-4 h-4" />
-                        </div>
-                      )}
-                      <div className={`${m.from === "bot" ? "bg-amber-50 text-amber-900" : "bg-gray-100 text-gray-900"} px-3 py-2 rounded-lg max-w-[80%] text-sm`}>{m.text}</div>
-                      {m.from === "user" && (
-                        <div className="shrink-0 w-6 h-6 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center">
-                          <User className="w-4 h-4" />
-                        </div>
-                      )}
-                    </div>
-                  ))}
+              <div className="flex flex-col h-full">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-xs font-medium text-cyan-700">Helper Conversation</div>
+                  <button
+                    onClick={startNewHelperChat}
+                    className="flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-cyan-300 text-cyan-700 hover:bg-cyan-50 transition"
+                    title="Start new helper chat"
+                    aria-label="Start new helper chat"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" /> New Chat
+                  </button>
                 </div>
-
-                {/* Contextual panels */}
-                {phase === "menu" && (
-                  <div className="space-y-3">
-                    <button onClick={() => { setPhase("find"); sendBot("Select pickup, drop, and date to search."); }} className="w-full border rounded-lg p-3 text-left hover:bg-amber-50">
-                      <div className="text-sm font-medium">Find a ride</div>
-                      <div className="text-xs text-gray-500">Search by date and locations</div>
-                    </button>
-                    <button onClick={() => { setPhase("post"); sendBot("Fill and add multiple rides, then post all."); }} className="w-full border rounded-lg p-3 text-left hover:bg-amber-50">
-                      <div className="text-sm font-medium">Post a ride</div>
-                      <div className="text-xs text-gray-500">Add one or multiple rides</div>
-                    </button>
-                  </div>
-                )}
-
-                {phase === "find" && (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-1 gap-3">
-                      <select value={fPickup} onChange={(e) => setFPickup(e.target.value)} className="border rounded-lg px-3 py-2">
-                        <option value="">Select pickup</option>
-                        {locations.map((loc) => (
-                          <option key={`p-${loc}`} value={loc}>{loc}</option>
-                        ))}
-                      </select>
-                      <select value={fDrop} onChange={(e) => setFDrop(e.target.value)} className="border rounded-lg px-3 py-2">
-                        <option value="">Select drop</option>
-                        {locations.map((loc) => (
-                          <option key={`d-${loc}`} value={loc}>{loc}</option>
-                        ))}
-                      </select>
-                      <input type="date" value={fDate} onChange={(e) => setFDate(e.target.value)} className="border rounded-lg px-3 py-2" />
-                    </div>
-                    <button disabled={loading} onClick={searchRides} className="w-full bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white rounded-lg px-4 py-2">
-                      {loading ? "Searching..." : "Search"}
-                    </button>
-                    {message && <div className="text-xs text-gray-600">{message}</div>}
-                    {error && <div className="text-xs text-red-600">{error}</div>}
-                    {results.length > 0 && (
-                      <div className="max-h-64 overflow-auto divide-y rounded-lg border">
-                        {results.map((r) => (
-                          <div key={r.id} className="p-3 text-sm">
-                            <div className="font-medium">{r.pickup} → {r.drop}</div>
-                            <div className="text-xs text-gray-600">{new Date(r.datetime).toLocaleString()}</div>
-                            <div className="text-xs text-gray-600">Seats: {r.seats} • Contact: {r.phone}</div>
+                <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-5 pr-1">
+                  {/* Messages */}
+                  <div className="space-y-2">
+                    {messages.map((m, i) => (
+                      <div key={i} className={`flex items-end gap-2 ${m.from === "bot" ? "justify-start" : "justify-end"}`}>
+                        {m.from === "bot" && (
+                          <div className="shrink-0 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center overflow-hidden shadow-sm border border-cyan-100/70">
+                            <Image src="/robot-avatar.jpeg" alt="CabShare bot" width={40} height={40} className="object-contain" />
                           </div>
-                        ))}
+                        )}
+                        <div className={`${m.from === "bot" ? "bg-gradient-to-r from-sky-50 to-cyan-50 text-sky-900" : "bg-gray-100 text-gray-900"} px-3 py-2 rounded-lg max-w-[80%] text-sm`}>{m.text}</div>
+                        {m.from === "user" && (
+                          <div className="shrink-0 w-6 h-6 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center">
+                            <User className="w-4 h-4" />
+                          </div>
+                        )}
                       </div>
-                    )}
+                    ))}
                   </div>
-                )}
-
-                {phase === "post" && (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-1 gap-3">
-                      <input value={pName} onChange={(e) => setPName(e.target.value)} placeholder="Your name" className="border rounded-lg px-3 py-2" />
-                      <input value={pPhone} onChange={(e) => setPPhone(e.target.value)} placeholder="Phone number" inputMode="tel" className="border rounded-lg px-3 py-2" />
-                      <select value={pPickup} onChange={(e) => setPPickup(e.target.value)} className="border rounded-lg px-3 py-2">
-                        <option value="">Select pickup</option>
-                        {locations.map((loc) => (
-                          <option key={`pp-${loc}`} value={loc}>{loc}</option>
-                        ))}
-                      </select>
-                      <select value={pDrop} onChange={(e) => setPDrop(e.target.value)} className="border rounded-lg px-3 py-2">
-                        <option value="">Select drop</option>
-                        {locations.map((loc) => (
-                          <option key={`pd-${loc}`} value={loc}>{loc}</option>
-                        ))}
-                      </select>
-                      <div className="grid grid-cols-2 gap-3">
-                        <input type="date" value={pDate} onChange={(e) => setPDate(e.target.value)} className="border rounded-lg px-3 py-2" />
-                        <input type="time" value={pTime} onChange={(e) => setPTime(e.target.value)} className="border rounded-lg px-3 py-2" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <input type="number" min={1} value={pSeats} onChange={(e) => setPSeats(e.target.value)} placeholder="Seats" className="border rounded-lg px-3 py-2" />
-                        <input value={pNotes} onChange={(e) => setPNotes(e.target.value)} placeholder="Notes (optional)" className="border rounded-lg px-3 py-2" />
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button disabled={loading} onClick={addToStaged} className="flex-1 border border-amber-600 text-amber-700 hover:bg-amber-50 rounded-lg px-4 py-2 disabled:opacity-60">Add to list</button>
-                      <button disabled={loading} onClick={postAllRides} className="flex-1 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white rounded-lg px-4 py-2">
-                        {loading ? "Posting..." : `Finish & Post${staged.length ? ` (${staged.length})` : ""}`}
+                  {/* Panels */}
+                  {phase === "menu" && (
+                    <div className="space-y-3">
+                      <button onClick={() => { setPhase("find"); sendBot("Select pickup, drop, and date to search."); }} className="w-full border rounded-lg p-3 text-left hover:bg-amber-50">
+                        <div className="text-sm font-medium">Find a ride</div>
+                        <div className="text-xs text-gray-500">Search by date and locations</div>
+                      </button>
+                      <button onClick={() => { setPhase("post"); sendBot("Fill and add multiple rides, then post all."); }} className="w-full border rounded-lg p-3 text-left hover:bg-amber-50">
+                        <div className="text-sm font-medium">Post a ride</div>
+                        <div className="text-xs text-gray-500">Add one or multiple rides</div>
                       </button>
                     </div>
-                    {message && <div className="text-xs text-green-700">{message}</div>}
-                    {error && <div className="text-xs text-red-600">{error}</div>}
-                    {staged.length > 0 && (
-                      <div className="max-h-40 overflow-auto border rounded-lg divide-y">
-                        {staged.map((r, idx) => (
-                          <div key={idx} className="p-2 text-xs">
-                            <div className="font-medium">{r.pickup} → {r.drop}</div>
-                            <div className="text-gray-600">{new Date(r.datetime).toLocaleString()} • Seats: {r.seats}</div>
-                          </div>
-                        ))}
+                  )}
+                  {phase === "find" && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 gap-3">
+                        <select value={fPickup} onChange={(e) => setFPickup(e.target.value)} className="border rounded-lg px-3 py-2">
+                          <option value="">Select pickup</option>
+                          {locations.map((loc) => (
+                            <option key={`p-${loc}`} value={loc}>{loc}</option>
+                          ))}
+                        </select>
+                        <select value={fDrop} onChange={(e) => setFDrop(e.target.value)} className="border rounded-lg px-3 py-2">
+                          <option value="">Select drop</option>
+                          {locations.map((loc) => (
+                            <option key={`d-${loc}`} value={loc}>{loc}</option>
+                          ))}
+                        </select>
+                        <input type="date" value={fDate} onChange={(e) => setFDate(e.target.value)} className="border rounded-lg px-3 py-2" />
                       </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Chat input (helper) */}
-        <div className="flex gap-2">
+                      <button disabled={loading} onClick={searchRides} className="w-full bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white rounded-lg px-4 py-2">
+                        {loading ? "Searching..." : "Search"}
+                      </button>
+                      {message && <div className="text-xs text-gray-600">{message}</div>}
+                      {error && <div className="text-xs text-red-600">{error}</div>}
+                      {results.length > 0 && (
+                        <div className="max-h-64 overflow-auto divide-y rounded-lg border">
+                          {results.map((r) => (
+                            <div key={r.id} className="p-3 text-sm">
+                              <div className="font-medium">{r.pickup} → {r.drop}</div>
+                              <div className="text-xs text-gray-600">{new Date(r.datetime).toLocaleString()}</div>
+                              <div className="text-xs text-gray-600">Seats: {r.seats} • Contact: {r.phone}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {phase === "post" && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 gap-3">
+                        <input value={pName} onChange={(e) => setPName(e.target.value)} placeholder="Your name" className="border rounded-lg px-3 py-2" />
+                        <input value={pPhone} onChange={(e) => setPPhone(e.target.value)} placeholder="Phone number" inputMode="tel" className="border rounded-lg px-3 py-2" />
+                        <select value={pPickup} onChange={(e) => setPPickup(e.target.value)} className="border rounded-lg px-3 py-2">
+                          <option value="">Select pickup</option>
+                          {locations.map((loc) => (
+                            <option key={`pp-${loc}`} value={loc}>{loc}</option>
+                          ))}
+                        </select>
+                        <select value={pDrop} onChange={(e) => setPDrop(e.target.value)} className="border rounded-lg px-3 py-2">
+                          <option value="">Select drop</option>
+                          {locations.map((loc) => (
+                            <option key={`pd-${loc}`} value={loc}>{loc}</option>
+                          ))}
+                        </select>
+                        <div className="grid grid-cols-2 gap-3">
+                          <input type="date" value={pDate} onChange={(e) => setPDate(e.target.value)} className="border rounded-lg px-3 py-2" />
+                          <input type="time" value={pTime} onChange={(e) => setPTime(e.target.value)} className="border rounded-lg px-3 py-2" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <input type="number" min={1} value={pSeats} onChange={(e) => setPSeats(e.target.value)} placeholder="Seats" className="border rounded-lg px-3 py-2" />
+                          <input value={pNotes} onChange={(e) => setPNotes(e.target.value)} placeholder="Notes (optional)" className="border rounded-lg px-3 py-2" />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button disabled={loading} onClick={addToStaged} className="flex-1 border border-amber-600 text-amber-700 hover:bg-amber-50 rounded-lg px-4 py-2 disabled:opacity-60">Add to list</button>
+                        <button disabled={loading} onClick={postAllRides} className="flex-1 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white rounded-lg px-4 py-2">
+                          {loading ? "Posting..." : `Finish & Post${staged.length ? ` (${staged.length})` : ""}`}
+                        </button>
+                      </div>
+                      {message && <div className="text-xs text-green-700">{message}</div>}
+                      {error && <div className="text-xs text-red-600">{error}</div>}
+                      {staged.length > 0 && (
+                        <div className="max-h-40 overflow-auto border rounded-lg divide-y">
+                          {staged.map((r, idx) => (
+                            <div key={idx} className="p-2 text-xs">
+                              <div className="font-medium">{r.pickup} → {r.drop}</div>
+                              <div className="text-gray-600">{new Date(r.datetime).toLocaleString()} • Seats: {r.seats}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {/* Input bar */}
+                <div className="mt-3 flex gap-2 sticky bottom-0 bg-white pt-2">
                   <input
+                    id="helper-chat-input"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         const v = (e.target as HTMLInputElement).value;
@@ -443,30 +489,42 @@ const Chatbot: React.FC = () => {
                   />
                   <button
                     onClick={() => {
-                      const inputEl = (scrollRef.current?.parentElement?.querySelector("input") as HTMLInputElement) || null;
+                      const inputEl = document.getElementById("helper-chat-input") as HTMLInputElement | null;
                       if (inputEl) { const v = inputEl.value; inputEl.value = ""; handleSend(v); }
                     }}
-          className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-3 flex items-center gap-1"
-          title="Send"
+                    className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-3 flex items-center gap-1"
+                    title="Send"
                   >
-          <Send className="w-4 h-4" />
-          <span className="text-sm">Send</span>
+                    <Send className="w-4 h-4" />
+                    <span className="text-sm">Send</span>
                   </button>
                 </div>
-              </>
+              </div>
             )}
 
             {tab === "ai" && (
-              <>
-                <div ref={aiScrollRef} className="max-h-64 overflow-auto space-y-2">
+              <div className="flex flex-col h-full">
+                {/* AI Messages */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-xs font-medium text-cyan-700">AI Conversation</div>
+                  <button
+                    onClick={startNewAIChat}
+                    className="flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-cyan-300 text-cyan-700 hover:bg-cyan-50 transition"
+                    title="Start new chat"
+                    aria-label="Start new chat"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" /> New Chat
+                  </button>
+                </div>
+                <div ref={aiScrollRef} className="flex-1 overflow-y-auto space-y-3 pr-1">
                   {aiMsgs.map((m, i) => (
                     <div key={i} className={`flex items-end gap-2 ${m.role === "assistant" ? "justify-start" : "justify-end"}`}>
                       {m.role === "assistant" && (
-                        <div className="shrink-0 w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center">
-                          <Bot className="w-4 h-4" />
+                        <div className="shrink-0 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center overflow-hidden shadow-sm border border-cyan-100/70">
+                          <Image src="/robot-avatar.jpeg" alt="CabShare bot" width={40} height={40} className="object-contain" />
                         </div>
                       )}
-                      <div className={`${m.role === "user" ? "bg-amber-600 text-white" : "bg-gray-100 text-gray-900"} px-3 py-2 rounded-lg max-w-[80%] text-sm`}>
+                      <div className={`${m.role === "user" ? "bg-cyan-600 text-white" : "bg-gradient-to-r from-sky-50 to-cyan-50 text-sky-900"} px-3 py-2 rounded-lg max-w-[80%] text-sm`}>
                         {m.content}
                       </div>
                       {m.role === "user" && (
@@ -478,20 +536,21 @@ const Chatbot: React.FC = () => {
                   ))}
                   {aiLoading && <div className="text-gray-400 text-xs">Typing…</div>}
                 </div>
-                <div className="mt-2 flex gap-2">
+        <div className="mt-3 flex gap-2 sticky bottom-0 bg-white pt-2">
                   <input
-                    className="flex-1 border rounded-lg px-2 py-1"
+          id="ai-chat-input"
+          className="flex-1 border rounded-lg px-3 py-2"
                     value={aiInput}
                     onChange={(e) => setAiInput(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && sendAI()}
                     placeholder="Ask anything… e.g. How to post a ride?"
                   />
-                  <button onClick={sendAI} className="bg-amber-600 hover:bg-amber-700 text-white px-3 rounded-lg flex items-center gap-1" title="Send">
+                  <button onClick={sendAI} className="bg-amber-600 hover:bg-amber-700 text-white px-4 rounded-lg flex items-center gap-1" title="Send">
                     <Send className="w-4 h-4" />
                     <span className="text-sm">Send</span>
                   </button>
                 </div>
-              </>
+              </div>
             )}
           </div>
         </div>
